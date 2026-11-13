@@ -161,7 +161,7 @@
                     </div>
 
                     <div class="flex-grow p-0 relative min-h-[400px]">
-                        <div class="table-container overflow-x-auto overflow-y-auto max-h-[600px] h-full absolute inset-0">
+                        <div class="table-container overflow-x-auto overflow-y-auto h-full absolute inset-0">
                             <table class="w-full text-left border-collapse whitespace-nowrap min-w-[850px]">
                                 <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 shadow-sm">
                                     <tr>
@@ -171,7 +171,7 @@
                                         <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase w-24">Foto<br><span class="text-[10px] text-slate-500">照片</span></th>
                                         <th class="py-3 px-4 text-xs font-bold text-slate-600 uppercase">Keterangan<br><span class="text-[10px] text-slate-500">备注</span></th>
                                         <!-- KOLOM AKSI (DISAMBUNYIKAN SECARA DEFAULT, MUNCUL SAAT ADMIN MODE) -->
-                                        <th id="col-aksi-header" class="hidden py-3 px-4 text-xs font-bold text-red-600 uppercase w-20">Aksi<br><span class="text-[10px] text-red-500">操作</span></th>
+                                        <th id="col-aksi-header" class="hidden py-3 px-4 text-xs font-bold text-indigo-600 uppercase w-32 text-center">Aksi<br><span class="text-[10px] text-indigo-500">操作</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
@@ -195,7 +195,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
         // API KEY IMGBB 
@@ -296,7 +296,7 @@
             if (isAdminUnlocked) {
                 isAdminUnlocked = false;
                 colAksiHeader.classList.add('hidden'); // Sembunyikan kolom aksi
-                renderTable(); // Re-render tabel tanpa tombol hapus
+                renderTable(); // Re-render tabel tanpa tombol aksi
                 Swal.fire({ title: 'Admin Mode Nonaktif', text: 'Form kembali mengikuti jadwal normal.', icon: 'info', timer: 2000, showConfirmButton: false });
                 checkTime();
                 return;
@@ -314,8 +314,8 @@
             if (password === 'admin123') {
                 isAdminUnlocked = true;
                 colAksiHeader.classList.remove('hidden'); // Munculkan kolom aksi
-                renderTable(); // Re-render tabel dengan tombol hapus
-                Swal.fire({ title: 'Akses Dibuka!', text: 'Form dibuka paksa & fitur hapus data diaktifkan.', icon: 'success', timer: 2000, showConfirmButton: false });
+                renderTable(); // Re-render tabel dengan tombol aksi
+                Swal.fire({ title: 'Akses Dibuka!', text: 'Form dibuka paksa & fitur edit/hapus diaktifkan.', icon: 'success', timer: 2000, showConfirmButton: false });
                 checkTime();
             } else if (password) {
                 Swal.fire('Gagal', 'Password salah!', 'error');
@@ -497,13 +497,19 @@
                     ? `<a href="${item.fotoUrl}" target="_blank" class="inline-flex items-center gap-1 text-teal-600 hover:text-teal-800 text-xs font-semibold bg-teal-50 px-2 py-1 rounded border border-teal-200 hover:bg-teal-100 transition-colors"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> Lihat / 查看</a>` 
                     : `<span class="text-slate-400 text-xs italic">Tidak ada / 无</span>`;
 
-                // Render tombol hapus hanya jika mode admin aktif
-                const deleteBtnHtml = isAdminUnlocked 
-                    ? `<td class="py-3 px-4">
-                        <button onclick="window.hapusData('${item.id}')" class="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded flex items-center gap-1 transition-colors">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            Hapus
-                        </button>
+                // Render tombol edit dan hapus hanya jika mode admin aktif
+                const aksiBtnHtml = isAdminUnlocked 
+                    ? `<td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="window.editData('${item.id}')" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs py-1 px-2 rounded flex items-center gap-1 transition-colors" title="Edit Parameter">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                Edit
+                            </button>
+                            <button onclick="window.hapusData('${item.id}')" class="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded flex items-center gap-1 transition-colors" title="Hapus Data">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                Hapus
+                            </button>
+                        </div>
                        </td>`
                     : ``;
 
@@ -520,14 +526,80 @@
                         <td class="py-3 px-4 text-xs text-slate-600 whitespace-normal max-w-xs leading-tight">
                             ${item.keterangan ? escapeHtml(item.keterangan) : '-'}
                         </td>
-                        ${deleteBtnHtml}
+                        ${aksiBtnHtml}
                     </tr>
                 `;
             }).join('');
         }
 
         // ==========================================
-        // FUNGSI HAPUS DATA (Hanya bisa dipanggil saat Admin Mode)
+        // FUNGSI EDIT DATA (Hanya Admin)
+        // ==========================================
+        window.editData = async function(docId) {
+            if (!isAdminUnlocked) return;
+            
+            // Cari data berdasarkan ID
+            const record = allRecordsData.find(d => d.id === docId);
+            if (!record) return;
+
+            // Buat form HTML untuk SweetAlert
+            let formHtml = '<div class="text-left space-y-3 mt-4">';
+            PARAMETERS.forEach(p => {
+                const currentStatus = record.parameter[p.id] || 'Abnormal';
+                const isNormal = currentStatus === 'Normal';
+                const paramName = p.label.split(' (')[0];
+                
+                formHtml += `
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span class="text-xs font-semibold text-slate-700">${paramName}</span>
+                        <select id="edit_${p.id}" class="text-xs border border-slate-300 rounded p-1.5 focus:ring-teal-500 outline-none cursor-pointer">
+                            <option value="Normal" ${isNormal ? 'selected' : ''}>Normal</option>
+                            <option value="Abnormal" ${!isNormal ? 'selected' : ''}>Abnormal</option>
+                        </select>
+                    </div>
+                `;
+            });
+            formHtml += '</div>';
+
+            const { value: formValues } = await Swal.fire({
+                title: 'Edit Status Parameter',
+                html: formHtml,
+                showCancelButton: true,
+                confirmButtonColor: '#0d9488', // teal-600
+                cancelButtonColor: '#64748b', // slate-500
+                confirmButtonText: 'Simpan Perubahan',
+                cancelButtonText: 'Batal',
+                preConfirm: () => {
+                    const newParams = {};
+                    PARAMETERS.forEach(p => {
+                        newParams[p.id] = document.getElementById(`edit_${p.id}`).value;
+                    });
+                    return newParams;
+                }
+            });
+
+            if (formValues) {
+                try {
+                    // Update dokumen di Firestore
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspeksi_stasiun_angin_kiln', docId);
+                    await updateDoc(docRef, { parameter: formValues });
+                    
+                    Swal.fire({
+                        title: 'Tersimpan!', 
+                        text: 'Parameter data berhasil diperbarui.', 
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } catch (error) {
+                    console.error("Error update data: ", error);
+                    Swal.fire('Gagal!', 'Terjadi kesalahan saat mengedit data.', 'error');
+                }
+            }
+        };
+
+        // ==========================================
+        // FUNGSI HAPUS DATA (Hanya Admin)
         // ==========================================
         window.hapusData = async function(docId) {
             if (!isAdminUnlocked) return;
@@ -547,7 +619,13 @@
                 try {
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'inspeksi_stasiun_angin_kiln', docId);
                     await deleteDoc(docRef);
-                    Swal.fire('Terhapus!', 'Data berhasil dihapus dari database.', 'success');
+                    Swal.fire({
+                        title: 'Terhapus!', 
+                        text: 'Data berhasil dihapus dari database.', 
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                 } catch (error) {
                     console.error("Error menghapus data: ", error);
                     Swal.fire('Gagal!', 'Terjadi kesalahan saat menghapus data.', 'error');
@@ -580,6 +658,9 @@
                 let fotoUrl = "";
                 const formData = new FormData();
                 formData.append('image', file);
+                
+                // Tambahkan baris ini untuk memberi label nama khusus:
+                formData.append('name', 'Stasiun_Angin_' + document.getElementById('area').value + '_' + document.getElementById('shift').value);
 
                 const imgbbResponse = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
                     method: 'POST',
